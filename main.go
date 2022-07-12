@@ -14,9 +14,9 @@ func pingHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	// url := "hello/world/:ali/something/:go/"
-	url := ""
-	fmt.Println(normalizeUrl(url))
+	url := "/hello/world/:ali/something/:go/"
+	// url := ""
+	fmt.Println(partialUrl(url))
 
 	// tmMux := modules.NewTinyMux()
 
@@ -25,22 +25,34 @@ func main() {
 	// http.ListenAndServe(":8000", tmMux)
 }
 
-func normalizeUrl(urlPattern string) string {
+// func normalizeUrl(urlPattern string) string {
 
-	partialUrl := strings.Split(urlPattern, "/")
-	fmt.Println(partialUrl)
+// 	partialUrl := strings.Split(urlPattern, "/")
+// 	// fmt.Println(partialUrl)
 
-	for index, partial := range partialUrl {
-		if strings.HasPrefix(partial, ":") {
-			partialUrl[index] = "*"
-		}
+// 	for index, partial := range partialUrl {
+// 		if strings.HasPrefix(partial, ":") {
+// 			partialUrl[index] = "*"
+// 		}
+// 	}
+
+// 	normalizedUrl := "/" + strings.Join(partialUrl, "/")
+
+// 	if normalizedUrl == "//" {
+// 		return "/"
+// 	}
+
+// 	return normalizedUrl
+// }
+
+func partialUrl(urlPattern string) []string {
+	if !strings.HasPrefix(urlPattern, "/") {
+		panic("invalid urlPattern")
 	}
 
-	normalizedUrl := "/" + strings.Join(partialUrl, "/")
+	urlPattern = strings.ReplaceAll(urlPattern, "/", "#/#")
 
-	if normalizedUrl == "//" {
-		return "/"
-	}
+	partialUrl := strings.Split(urlPattern, "#")
 
-	return normalizedUrl
+	return partialUrl
 }

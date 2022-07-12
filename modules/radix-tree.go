@@ -8,11 +8,22 @@ import (
 var Shit = 50
 
 type radixTree struct {
+	root *radixNode
 }
 
 type radixNode struct {
-	handler *http.Handler
+	handler http.Handler
 	partial string
+	childs  map[string]*radixNode
+}
+
+func (rt *radixTree) insert(pattern string, handler http.Handler) {
+
+}
+
+func (rt *radixTree) search(url string) http.Handler {
+
+	return nil
 }
 
 type TinyMux struct {
@@ -42,13 +53,13 @@ func (tm *TinyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// This is where we need radixTree.
 	// Forinstance user request for /foo/bar
 	// AND a handler is registered for /foo/:bar
-	// the radix tree should be able to iterate tree.
-	// Like: search for foo --> found
-	// search for child of foo node --> foo has a child.
+	// the radix tree should be able to iterate over tree.
+	// Like: looking for foo --> found
+	// search foo has a child or not --> foo has a child.
 	// coressponding to previous assumption that we have
 	// aready registerd /foo/:bar so the child of foo
 	// is :bar (wild card). Therfore the pattern matched successfully
-	// And call the corresponding handler to execute.
+	// And  corresponding handler can be called.
 	muxHandler, ok := tm.handlers[normalizedUrl]
 
 	if !ok {
@@ -114,4 +125,16 @@ func normalizeUrl(urlPattern string) string {
 	}
 
 	return normalizedUrl
+}
+
+func partialUrl(urlPattern string) []string {
+
+	if !strings.HasPrefix(urlPattern, "/") {
+		panic("invalid urlPattern")
+	}
+
+	urlPattern = strings.ReplaceAll(urlPattern, "/", "#/#")
+	partialUrl := strings.Split(urlPattern, "#")
+
+	return partialUrl
 }
