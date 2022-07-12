@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
+	"tiny-mux/modules"
 )
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
@@ -14,15 +14,13 @@ func pingHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	url := "/hello/world/:ali/something/:go/"
-	// url := ""
-	fmt.Println(partialUrl(url))
+	tmMux := modules.NewTinyMux()
 
-	// tmMux := modules.NewTinyMux()
+	tmMux.Handle("/hello/", http.HandlerFunc(pingHandler))
+	tmMux.Handle("/hello/", http.HandlerFunc(pingHandler))
+	// .Methods("GET")
 
-	// tmMux.Handle("/hello", http.HandlerFunc(pingHandler)).Methods("GET")
-
-	// http.ListenAndServe(":8000", tmMux)
+	http.ListenAndServe(":8000", tmMux)
 }
 
 // func normalizeUrl(urlPattern string) string {

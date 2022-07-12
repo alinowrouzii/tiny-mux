@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -17,30 +18,70 @@ type radixNode struct {
 	childs  map[string]*radixNode
 }
 
-func (rt *radixTree) insert(pattern string, handler http.Handler) {
+func (rt *radixTree) insert(urlPattern string, handler http.Handler) {
+	partialUrl := partialUrl(urlPattern)
+	fmt.Println(partialUrl, len(partialUrl), "h")
 
+	if rt.root == nil {
+		fmt.Println("null")
+		rootNode := createRadixNode(partialUrl[0], nil)
+		rt.root = rootNode
+	}
+
+	currNode := rt.root
+	for i := 0; i < len(partialUrl)-1; i++ {
+		partial := partialUrl[i+1]
+		childs := currNode.childs
+		fmt.Println("partial-->", partial)
+
+		child, childFound := childs[partial]
+
+		if childFound {
+			fmt.Println("found")
+			currNode = child
+		} else {
+			fmt.Println("not found")
+			newChild := createRadixNode(partial, nil)
+			currNode.childs[partial] = newChild
+		}
+	}
+
+	if currNode.handler == nil {
+		currNode.handler = handler
+	} else {
+		panic("url has conflict with another registered handler")
+	}
+
+	// fmt.Println("hahah")
+}
+
+func createRadixNode(partial string, handler http.Handler) *radixNode {
+	return &radixNode{
+		handler: handler,
+		partial: partial,
+		childs:  make(map[string]*radixNode),
+	}
 }
 
 func (rt *radixTree) search(url string) http.Handler {
-
 	return nil
 }
 
 type TinyMux struct {
-	handlers map[string]*MuxHandler
+	radixTree *radixTree
 }
 
-type MuxHandler struct {
-	handler           http.Handler
-	methods           []string
-	originPattern     string
-	normalizedPattern string
-}
+// type MuxHandler struct {
+// 	handler           http.Handler
+// 	methods           []string
+// 	originPattern     string
+// 	normalizedPattern string
+// }
 
 func NewTinyMux() *TinyMux {
-	handlers := make(map[string]*MuxHandler)
+	radixTree := new(radixTree)
 	tinyMux := TinyMux{
-		handlers: handlers,
+		radixTree,
 	}
 
 	return &tinyMux
@@ -48,8 +89,6 @@ func NewTinyMux() *TinyMux {
 func (tm *TinyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// find corresponding handler, then call the matched handler ServeHTTP method
 	url := r.URL.Path
-	normalizedUrl := normalizeUrl(url)
-
 	// This is where we need radixTree.
 	// Forinstance user request for /foo/bar
 	// AND a handler is registered for /foo/:bar
@@ -60,43 +99,18 @@ func (tm *TinyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// aready registerd /foo/:bar so the child of foo
 	// is :bar (wild card). Therfore the pattern matched successfully
 	// And  corresponding handler can be called.
-	muxHandler, ok := tm.handlers[normalizedUrl]
+	handler := tm.radixTree.search(url)
 
-	if !ok {
-		http.NotFoundHandler().ServeHTTP(w, r)
-		return
-	}
-
-	// check method is allowed
-	method := r.Method
-	if !existIn(method, muxHandler.methods) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(405)
-		w.Write([]byte("method not allowed"))
-		return
-	}
-
-	muxHandler.handler.ServeHTTP(w, r)
+	handler.ServeHTTP(w, r)
 }
 
-func (tm *TinyMux) Handle(urlPattern string, handler http.Handler) *MuxHandler {
-
-	normalizedUrl := normalizeUrl(urlPattern)
-
-	muxHandler := MuxHandler{
-		handler:           handler,
-		originPattern:     urlPattern,
-		normalizedPattern: normalizedUrl,
-	}
-
-	tm.handlers[normalizedUrl] = &muxHandler
-
-	return &muxHandler
+func (tm *TinyMux) Handle(urlPattern string, handler http.Handler) {
+	tm.radixTree.insert(urlPattern, handler)
 }
 
-func (muxHandler *MuxHandler) Methods(methods ...string) {
-	muxHandler.methods = append(muxHandler.methods, methods...)
-}
+// func (muxHandler *MuxHandler) Methods(methods ...string) {
+// 	muxHandler.methods = append(muxHandler.methods, methods...)
+// }
 
 func existIn(a string, list []string) bool {
 	for _, b := range list {
@@ -105,26 +119,6 @@ func existIn(a string, list []string) bool {
 		}
 	}
 	return false
-}
-
-func normalizeUrl(urlPattern string) string {
-
-	partialUrl := strings.Split(urlPattern, "/")
-	// fmt.Println(partialUrl)
-
-	for index, partial := range partialUrl {
-		if strings.HasPrefix(partial, ":") {
-			partialUrl[index] = "*"
-		}
-	}
-
-	normalizedUrl := "/" + strings.Join(partialUrl, "/")
-
-	if normalizedUrl == "//" {
-		return "/"
-	}
-
-	return normalizedUrl
 }
 
 func partialUrl(urlPattern string) []string {
@@ -136,5 +130,5 @@ func partialUrl(urlPattern string) []string {
 	urlPattern = strings.ReplaceAll(urlPattern, "/", "#/#")
 	partialUrl := strings.Split(urlPattern, "#")
 
-	return partialUrl
+	return partialUrl[1 : len(partialUrl)-1]
 }
