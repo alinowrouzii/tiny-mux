@@ -16,32 +16,19 @@ func main() {
 
 	tmMux := modules.NewTinyMux()
 
-	tmMux.Handle("/hello/", http.HandlerFunc(pingHandler))
-	tmMux.Handle("/hello/", http.HandlerFunc(pingHandler))
+	// tmMux.Handle("/hello/", http.HandlerFunc(pingHandler))
+	// tmMux.Handle("/hello/world/", http.HandlerFunc(pingHandler))
+	// tmMux.Handle("/hello/world/:baz/bar", http.HandlerFunc(pingHandler))
+
+	// conflict handling... goroutine must panic in below state
+	tmMux.Handle("/hello/world/:baz", http.HandlerFunc(pingHandler))
+	tmMux.Handle("/hello/world/:baz/", http.HandlerFunc(pingHandler))
+
 	// .Methods("GET")
 
 	http.ListenAndServe(":8000", tmMux)
 }
 
-// func normalizeUrl(urlPattern string) string {
-
-// 	partialUrl := strings.Split(urlPattern, "/")
-// 	// fmt.Println(partialUrl)
-
-// 	for index, partial := range partialUrl {
-// 		if strings.HasPrefix(partial, ":") {
-// 			partialUrl[index] = "*"
-// 		}
-// 	}
-
-// 	normalizedUrl := "/" + strings.Join(partialUrl, "/")
-
-// 	if normalizedUrl == "//" {
-// 		return "/"
-// 	}
-
-// 	return normalizedUrl
-// }
 
 func partialUrl(urlPattern string) []string {
 	if !strings.HasPrefix(urlPattern, "/") {
