@@ -16,15 +16,20 @@ func main() {
 
 	tmMux := modules.NewTinyMux()
 
-	// tmMux.Handle("/hello/", http.HandlerFunc(pingHandler))
-	// tmMux.Handle("/hello/world/", http.HandlerFunc(pingHandler))
-	// tmMux.Handle("/hello/world/:baz/bar", http.HandlerFunc(pingHandler))
+	tmMux.Handle("/hello/", http.HandlerFunc(pingHandler))
+	tmMux.Handle("/hello/world/", http.HandlerFunc(pingHandler))
+	tmMux.Handle("/hello/world/:baz/bar", http.HandlerFunc(pingHandler))
 
 	// conflict handling... goroutine must panic in below state
 	tmMux.Handle("/hello/world/:baz", http.HandlerFunc(pingHandler))
 	tmMux.Handle("/hello/world/:baz/", http.HandlerFunc(pingHandler))
 
-	// .Methods("GET")
+	// handle this conflict:
+	// tmMux.Handle("/:bar/", http.HandlerFunc(pingHandler))
+	// tmMux.Handle("/:foo", http.HandlerFunc(pingHandler))
+	// tmMux.Handle("/:baz", http.HandlerFunc(pingHandler))
+
+	
 
 	http.ListenAndServe(":8000", tmMux)
 }

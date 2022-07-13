@@ -16,11 +16,12 @@ type radixNode struct {
 	handler http.Handler
 	partial string
 	childs  map[string]*radixNode
+	actualPattern string
 }
 
 func (rt *radixTree) insert(urlPattern string, handler http.Handler) {
 	partialUrl := partialUrl(urlPattern)
-	fmt.Println(partialUrl, len(partialUrl), "h")
+	fmt.Println(partialUrl, len(partialUrl))
 
 	if rt.root == nil {
 		fmt.Println("null")
@@ -32,28 +33,13 @@ func (rt *radixTree) insert(urlPattern string, handler http.Handler) {
 	for i := 0; i < len(partialUrl)-1; i++ {
 		partial := partialUrl[i+1]
 		childs := currNode.childs
-		// fmt.Println("-----")
-		// fmt.Println("partial-->", partial,"<--")
 
-		// lastIndex checks for wildcard conflict
-		// for instance user wants to register both /foo/:bar and /foo/:baz
-		// here we checking that conflict and if there is a conflict panic the goroutine
-		// note that this conflict may occured only in the last index and the lastIndex element should
-		// be wildcard like above example :foo or :bar
-		childFound := false
-		var child *radixNode
-		if i == len(partialUrl)-2 && strings.HasPrefix(partial, ":"){
-			for k, _ := range childs { 
-				// wildcard found
-				if strings.HasPrefix(k, ":") {
-					childFound = true
-					child = childs[k]
-					break
-				}
-			}
-		} else {
-			child, childFound = childs[partial]	
+		if strings.HasPrefix(partial, ":") {
+			partial = "*"
 		}
+
+		child, childFound := childs[partial]	
+		
 
 		if childFound {
 			fmt.Println("found")
@@ -68,6 +54,7 @@ func (rt *radixTree) insert(urlPattern string, handler http.Handler) {
 
 	if currNode.handler == nil {
 		currNode.handler = handler
+		currNode.actualPattern = urlPattern
 	} else {
 		panic("url has conflict with another registered handler")
 	}
