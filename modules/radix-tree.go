@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"log"
 )
 
 var Shit = 50
@@ -56,7 +57,7 @@ func (rt *radixTree) insert(urlPattern string, handler http.Handler) {
 		currNode.handler = handler
 		currNode.actualPattern = urlPattern
 	} else {
-		panic("url has conflict with another registered handler")
+		log.Fatal(fmt.Sprintf("two url has conflict with each other %s - %s", currNode.actualPattern,urlPattern))
 	}
 }
 
@@ -68,8 +69,41 @@ func createRadixNode(partial string, handler http.Handler) *radixNode {
 	}
 }
 
-func (rt *radixTree) search(url string) http.Handler {
-	return nil
+func (rt *radixTree) search(urlPattern string) http.Handler {
+	partialUrl := partialUrl(urlPattern)
+	fmt.Println(partialUrl, len(partialUrl))
+
+
+	currNode := rt.root
+	for i := 0; i < len(partialUrl)-1; i++ {
+		partial := partialUrl[i+1]
+		childs := currNode.childs
+
+		child, childFound := childs[partial]	
+		if childFound {
+			fmt.Println("found")
+			currNode = child
+			continue
+		}
+
+		// then looking for wildcard
+		child, childFound = childs["*"]
+
+		if childFound {
+			fmt.Println("found")
+			currNode = child
+		} else{
+			fmt.Println("partial not found", partial)
+			return nil
+		}
+	}
+
+	if currNode.handler != nil {
+		fmt.Println("found pattern", currNode.actualPattern)
+		return currNode.handler 
+	} else {
+		return nil
+	}
 }
 
 type TinyMux struct {
@@ -105,6 +139,11 @@ func (tm *TinyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// is :bar (wild card). Therfore the pattern matched successfully
 	// And  corresponding handler can be called.
 	handler := tm.radixTree.search(url)
+
+	if handler == nil {
+		http.NotFound(w, r)
+		return
+	}
 
 	handler.ServeHTTP(w, r)
 }

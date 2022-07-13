@@ -25,9 +25,11 @@ func main() {
 	tmMux.Handle("/hello/world/:baz/", http.HandlerFunc(pingHandler))
 
 	// handle this conflict:
-	// tmMux.Handle("/:bar/", http.HandlerFunc(pingHandler))
-	// tmMux.Handle("/:foo", http.HandlerFunc(pingHandler))
-	// tmMux.Handle("/:baz", http.HandlerFunc(pingHandler))
+	tmMux.Handle("/:bar/", http.HandlerFunc(pingHandler))
+	tmMux.Handle("/:foo/bar/baz", http.HandlerFunc(pingHandler))
+	tmMux.Handle("/:foo/bar/bar", http.HandlerFunc(pingHandler))
+
+	// tmMux.Handle("/:baz/bar/baz", http.HandlerFunc(pingHandler))
 
 	
 
