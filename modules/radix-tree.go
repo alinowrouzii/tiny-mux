@@ -75,6 +75,7 @@ func (rt *radixTree) search(urlPattern string) http.Handler {
 
 
 	currNode := rt.root
+	wildCurrNode := rt.root
 	for i := 0; i < len(partialUrl)-1; i++ {
 		partial := partialUrl[i+1]
 		childs := currNode.childs
@@ -83,16 +84,18 @@ func (rt *radixTree) search(urlPattern string) http.Handler {
 		if childFound {
 			fmt.Println("found")
 			currNode = child
-			continue
+			
 		}
 
 		// then looking for wildcard
-		child, childFound = childs["*"]
+		wildChild, wildChildFound := childs["*"]
 
-		if childFound {
+		if wildChildFound {
 			fmt.Println("found")
-			currNode = child
-		} else{
+			wildCurrNode = wildChild
+		} 
+		
+		if !childFound && !wildChildFound{
 			fmt.Println("partial not found", partial)
 			return nil
 		}
@@ -101,9 +104,13 @@ func (rt *radixTree) search(urlPattern string) http.Handler {
 	if currNode.handler != nil {
 		fmt.Println("found pattern", currNode.actualPattern)
 		return currNode.handler 
-	} else {
-		return nil
+	} 
+	
+	if wildCurrNode.handler != nil {
+		fmt.Println("found wildcardPattern", wildCurrNode.actualPattern)
+		return wildCurrNode.handler 
 	}
+	return nil
 }
 
 type TinyMux struct {
