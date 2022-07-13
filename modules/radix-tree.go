@@ -2,9 +2,9 @@ package modules
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
-	"log"
 )
 
 var Shit = 50
@@ -14,9 +14,9 @@ type radixTree struct {
 }
 
 type radixNode struct {
-	handler http.Handler
-	partial string
-	childs  map[string]*radixNode
+	handler       http.Handler
+	partial       string
+	childs        map[string]*radixNode
 	actualPattern string
 }
 
@@ -36,16 +36,16 @@ func (rt *radixTree) insert(urlPattern string, handler http.Handler) {
 		childs := currNode.childs
 
 		if strings.HasPrefix(partial, ":") {
-			partial = "*"
+			fmt.Println("setting wild key")
+			partial = "#"
 		}
 
-		child, childFound := childs[partial]	
-		
+		child, childFound := childs[partial]
 
 		if childFound {
 			fmt.Println("found")
 			currNode = child
-		} else{
+		} else {
 			fmt.Println("not found")
 			newChild := createRadixNode(partial, nil)
 			currNode.childs[partial] = newChild
@@ -56,8 +56,9 @@ func (rt *radixTree) insert(urlPattern string, handler http.Handler) {
 	if currNode.handler == nil {
 		currNode.handler = handler
 		currNode.actualPattern = urlPattern
+		fmt.Println("actual pattern", urlPattern)
 	} else {
-		log.Fatal(fmt.Sprintf("two url has conflict with each other %s - %s", currNode.actualPattern,urlPattern))
+		log.Fatal(fmt.Sprintf("two url has conflict with each other %s - %s", currNode.actualPattern, urlPattern))
 	}
 }
 
@@ -70,45 +71,64 @@ func createRadixNode(partial string, handler http.Handler) *radixNode {
 }
 
 func (rt *radixTree) search(urlPattern string) http.Handler {
+	fmt.Println("======")
+	fmt.Println(rt.root.childs["hello"].childs["/"].childs["world"].childs["/"].childs["#"].childs["/"].childs["bar"])
+	fmt.Println("======")
+
 	partialUrl := partialUrl(urlPattern)
 	fmt.Println(partialUrl, len(partialUrl))
 
-
 	currNode := rt.root
 	wildCurrNode := rt.root
+	// patternFound := false
+	// wildPatternFound := false
+	childFound := false
+	wildChildFound := false
 	for i := 0; i < len(partialUrl)-1; i++ {
 		partial := partialUrl[i+1]
-		childs := currNode.childs
 
-		child, childFound := childs[partial]	
-		if childFound {
-			fmt.Println("found")
-			currNode = child
-			
-		}
+		// childs := currNode.childs
+		// var child *radixNode
+		// child, childFound = childs[partial]
+		// if childFound {
+		// 	fmt.Println("found")
+		// 	currNode = child
 
-		// then looking for wildcard
-		wildChild, wildChildFound := childs["*"]
+		// }
+
+		// // then looking for wildcard
+		var wildChild *radixNode
+		wildChilds := wildCurrNode.childs
+		wildChild, wildChildFound = wildChilds[partial]
 
 		if wildChildFound {
-			fmt.Println("found")
+			// fmt.Println("wild found", partial)
+			fmt.Println("wild found", partial)
 			wildCurrNode = wildChild
-		} 
-		
-		if !childFound && !wildChildFound{
+		} else {
+			wildChild, wildChildFound = wildChilds["#"]
+			if wildChildFound {
+				fmt.Println("inside wild found", partial)
+				wildCurrNode = wildChild
+			}
+		}
+
+		if !childFound && !wildChildFound {
 			fmt.Println("partial not found", partial)
 			return nil
 		}
 	}
 
-	if currNode.handler != nil {
+	fmt.Println("status: ", childFound, wildChildFound, wildCurrNode.partial)
+
+	if childFound && currNode.handler != nil {
 		fmt.Println("found pattern", currNode.actualPattern)
-		return currNode.handler 
-	} 
-	
-	if wildCurrNode.handler != nil {
+		return currNode.handler
+	}
+
+	if wildChildFound && wildCurrNode.handler != nil {
 		fmt.Println("found wildcardPattern", wildCurrNode.actualPattern)
-		return wildCurrNode.handler 
+		return wildCurrNode.handler
 	}
 	return nil
 }
@@ -180,8 +200,8 @@ func partialUrl(urlPattern string) []string {
 
 	urlPattern = strings.ReplaceAll(urlPattern, "/", "#/#")
 	partialUrl := strings.Split(urlPattern, "#")
-	if partialUrl[len(partialUrl)-1]== "" {
+	if partialUrl[len(partialUrl)-1] == "" {
 		return partialUrl[1 : len(partialUrl)-1]
 	}
-	return partialUrl[1 : len(partialUrl)]
+	return partialUrl[1:]
 }
