@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"strings"
 	"tiny-mux/modules"
 )
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
+
+	fmt.Println(modules.Values(*r))
 
 	w.Write([]byte("PONG"))
 	return
@@ -19,10 +21,10 @@ func main() {
 	// tmMux.Handle("/hello/bar", http.HandlerFunc(pingHandler))
 	// tmMux.Handle("/:hello/bar", http.HandlerFunc(pingHandler))
 	// tmMux.Handle("/hello/world/", http.HandlerFunc(pingHandler))
-	tmMux.Handle("/hello/world/:baz/bar", http.HandlerFunc(pingHandler))
-	tmMux.Handle("/hello/world/bazz/bar", http.HandlerFunc(pingHandler))
+	tmMux.Handle("GET", "/hello/world/:baz/bar", http.HandlerFunc(pingHandler))
+	tmMux.Handle("GET", "/hello/world/bazz/bar", http.HandlerFunc(pingHandler))
 
-	tmMux.Handle("/hello/world/:baz", http.HandlerFunc(pingHandler))
+	tmMux.Handle("POST", "/hello/world/:baz", http.HandlerFunc(pingHandler))
 	// // conflict handling... goroutine must panic in below state
 	// tmMux.Handle("/hello/world/:baz/", http.HandlerFunc(pingHandler))
 
@@ -32,20 +34,8 @@ func main() {
 	// tmMux.Handle("/:foo/bar/bar", http.HandlerFunc(pingHandler))
 	// tmMux.Handle("/:baz/bar/baz", http.HandlerFunc(pingHandler))
 
-	// tmMux.Handle("/:hello/bar/:id", http.HandlerFunc(pingHandler))
+	tmMux.Handle("GET", "/:hello/bar/:id", http.HandlerFunc(pingHandler))
 	// tmMux.Handle("/:hello/bar/baz", http.HandlerFunc(pingHandler))
 
 	http.ListenAndServe(":8000", tmMux)
-}
-
-func partialUrl(urlPattern string) []string {
-	if !strings.HasPrefix(urlPattern, "/") {
-		panic("invalid urlPattern")
-	}
-
-	urlPattern = strings.ReplaceAll(urlPattern, "/", "#/#")
-
-	partialUrl := strings.Split(urlPattern, "#")
-
-	return partialUrl
 }
