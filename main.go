@@ -1,14 +1,13 @@
-package main
+package tinymux
 
 import (
 	"fmt"
 	"net/http"
-	"tiny-mux/modules"
 )
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println(modules.Values(*r))
+	fmt.Println(Values(*r))
 
 	w.Write([]byte("PONG"))
 	return
@@ -16,7 +15,7 @@ func pingHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	tmMux := modules.NewTinyMux()
+	tmMux := NewTinyMux()
 
 	// tmMux.Handle("/hello/bar", http.HandlerFunc(pingHandler))
 	// tmMux.Handle("/:hello/bar", http.HandlerFunc(pingHandler))
