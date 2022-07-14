@@ -35,6 +35,13 @@ func (m middleware) chainMiddleware(handler http.Handler) http.Handler {
 	return m(handler)
 }
 
+func ChainMiddlewares(handler http.Handler, middlewares ...middleware) http.Handler {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		handler = middlewares[i].chainMiddleware(handler)
+	}
+	return handler
+}
+
 type TinyMux struct {
 	radixTree   *radixTree
 	middlewares []middleware
@@ -156,10 +163,6 @@ func (tm *TinyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newR := tm.readParamsValue(r, handlerNode)
-	// chain middlewares
-	for i := len(tm.middlewares) - 1; i >= 0; i-- {
-		handler = tm.middlewares[i].chainMiddleware(handler)
-	}
 
 	handler.ServeHTTP(w, newR)
 }
@@ -196,6 +199,9 @@ func (tm *TinyMux) Handle(method string, urlPattern string, handler http.Handler
 	if !existIn(method, methods) {
 		log.Fatal("method is not valid", method)
 	}
+	// chain middlewares
+	handler = ChainMiddlewares(handler, tm.middlewares...)
+
 	tm.radixTree.insert(method, urlPattern, handler)
 }
 
