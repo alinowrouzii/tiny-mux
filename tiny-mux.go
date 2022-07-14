@@ -29,6 +29,17 @@ type radixNode struct {
 	methods       map[string]http.Handler
 }
 
+type middleware func(http.Handler) http.Handler
+
+func (m middleware) chainMiddleware(handler http.Handler) http.Handler {
+	return m(handler)
+}
+
+type TinyMux struct {
+	radixTree   *radixTree
+	middlewares []middleware
+}
+
 func (rt *radixTree) insert(method string, urlPattern string, handler http.Handler) {
 	partialURL := partialURL(urlPattern)
 
@@ -108,14 +119,10 @@ func (rt *radixTree) search(urlPattern string) *radixNode {
 	return nil
 }
 
-type TinyMux struct {
-	radixTree *radixTree
-}
-
 func NewTinyMux() *TinyMux {
 	radixTree := new(radixTree)
 	tinyMux := TinyMux{
-		radixTree,
+		radixTree: radixTree,
 	}
 
 	return &tinyMux
@@ -149,6 +156,10 @@ func (tm *TinyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newR := tm.readParamsValue(r, handlerNode)
+	// chain middlewares
+	for i := len(tm.middlewares) - 1; i >= 0; i-- {
+		handler = tm.middlewares[i].chainMiddleware(handler)
+	}
 
 	handler.ServeHTTP(w, newR)
 }
@@ -206,6 +217,12 @@ func (tm *TinyMux) PUT(urlPattern string, handler http.Handler) {
 
 func (tm *TinyMux) DELETE(urlPattern string, handler http.Handler) {
 	tm.Handle("DELETE", urlPattern, handler)
+}
+
+func (tm *TinyMux) Use(middlewares ...middleware) {
+	for _, handler := range middlewares {
+		tm.middlewares = append(tm.middlewares, handler)
+	}
 }
 
 func partialURL(urlPattern string) []string {
