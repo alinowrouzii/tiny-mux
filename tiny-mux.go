@@ -10,6 +10,13 @@ import (
 
 var methods = []string{"GET", "POST", "PATCH", "PUT", "DELETE"}
 
+// keys type is unexported to prevent collisiosn with context keys
+type keys int
+
+const (
+	paramsKey keys = iota
+)
+
 type radixTree struct {
 	root *radixNode
 }
@@ -164,14 +171,14 @@ func (tm *TinyMux) readParamsValue(r *http.Request, handlerNode *radixNode) *htt
 
 	// https://stackoverflow.com/questions/40891345/fix-should-not-use-basic-type-string-as-key-in-context-withvalue-golint
 	// TODO fix above issue
-	rcopy := r.WithContext(context.WithValue(r.Context(), "params", params))
+	rcopy := r.WithContext(context.WithValue(r.Context(), paramsKey, params))
 
 	return rcopy
 
 }
 
 func Values(r http.Request) map[string]string {
-	return r.Context().Value("params").(map[string]string)
+	return r.Context().Value(paramsKey).(map[string]string)
 }
 
 func (tm *TinyMux) Handle(method string, urlPattern string, handler http.Handler) {
