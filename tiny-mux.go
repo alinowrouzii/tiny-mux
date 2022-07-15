@@ -51,13 +51,13 @@ func (rt *radixTree) insert(method string, urlPattern string, handler http.Handl
 	partialURL := partialURL(urlPattern)
 
 	if rt.root == nil {
-		rootNode := createRadixNode(partialURL[0], nil)
+		rootNode := createRadixNode("/", nil)
 		rt.root = rootNode
 	}
 
 	currNode := rt.root
-	for i := 0; i < len(partialURL)-1; i++ {
-		partial := partialURL[i+1]
+	for i := 0; i < len(partialURL); i++ {
+		partial := partialURL[i]
 		childs := currNode.childs
 
 		if strings.HasPrefix(partial, ":") {
@@ -98,9 +98,9 @@ func (rt *radixTree) search(urlPattern string) *radixNode {
 	partialURL := partialURL(urlPattern)
 
 	currNode := rt.root
-	childFound := false
-	for i := 0; i < len(partialURL)-1; i++ {
-		partial := partialURL[i+1]
+	childFound := true
+	for i := 0; i < len(partialURL); i++ {
+		partial := partialURL[i]
 
 		var child *radixNode
 		childs := currNode.childs
@@ -237,8 +237,8 @@ func partialURL(urlPattern string) []string {
 		panic("invalid urlPattern")
 	}
 
-	urlPattern = strings.ReplaceAll(urlPattern, "/", "#/#")
-	partialURL := strings.Split(urlPattern, "#")
+	// urlPattern = strings.ReplaceAll(urlPattern, "/", "#/#")
+	partialURL := strings.Split(urlPattern, "/")
 	if partialURL[len(partialURL)-1] == "" {
 		return partialURL[1 : len(partialURL)-1]
 	}
