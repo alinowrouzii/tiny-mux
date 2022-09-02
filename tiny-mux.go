@@ -160,11 +160,12 @@ func (tm *TinyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var handler http.Handler
 	if handlerNode == nil {
 		handler = http.NotFoundHandler()
-	}
-
-	handler, ok := handlerNode.methods[method]
-	if !ok {
-		handler = methodNotAllowedHandler()
+	} else {
+		var ok bool
+		handler, ok = handlerNode.methods[method]
+		if !ok {
+			handler = methodNotAllowedHandler()
+		}
 	}
 
 	handler = ChainMiddlewares(handler, tm.middlewares...)
