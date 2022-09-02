@@ -126,6 +126,13 @@ func (rt *radixTree) search(urlPattern string) *radixNode {
 	return nil
 }
 
+func methodNotAllowedHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("method not allowed"))
+	})
+}
+
 func NewTinyMux() *TinyMux {
 	radixTree := new(radixTree)
 	tinyMux := TinyMux{
@@ -150,18 +157,17 @@ func (tm *TinyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// And  corresponding handler can be called.
 	handlerNode := tm.radixTree.search(url)
 
+	var handler http.Handler
 	if handlerNode == nil {
-		http.NotFound(w, r)
-		return
+		handler = http.NotFoundHandler()
 	}
 
 	handler, ok := handlerNode.methods[method]
 	if !ok {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Write([]byte("method not allowed"))
-		return
+		handler = methodNotAllowedHandler()
 	}
 
+	handler = ChainMiddlewares(handler, tm.middlewares...)
 	newR := tm.readParamsValue(r, handlerNode)
 
 	handler.ServeHTTP(w, newR)
@@ -200,7 +206,7 @@ func (tm *TinyMux) Handle(method string, urlPattern string, handler http.Handler
 		log.Fatal("method is not valid", method)
 	}
 	// chain middlewares
-	handler = ChainMiddlewares(handler, tm.middlewares...)
+	// handler = ChainMiddlewares(handler, tm.middlewares...)
 
 	tm.radixTree.insert(method, urlPattern, handler)
 }
