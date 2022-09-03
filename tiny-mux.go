@@ -158,18 +158,20 @@ func (tm *TinyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handlerNode := tm.radixTree.search(url)
 
 	var handler http.Handler
-	if handlerNode == nil {
-		handler = http.NotFoundHandler()
-	} else {
+	newR := r
+	if handlerNode != nil {
 		var ok bool
 		handler, ok = handlerNode.methods[method]
 		if !ok {
 			handler = methodNotAllowedHandler()
+		} else {
+			newR = tm.readParamsValue(r, handlerNode)
 		}
+	} else {
+		handler = http.NotFoundHandler()
 	}
 
 	handler = ChainMiddlewares(handler, tm.middlewares...)
-	newR := tm.readParamsValue(r, handlerNode)
 
 	handler.ServeHTTP(w, newR)
 }
